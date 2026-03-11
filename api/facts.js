@@ -31,7 +31,7 @@ Be enthusiastic. Use language a smart 12-year-old would find cool, not babyish.`
 
   try {
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -44,8 +44,8 @@ Be enthusiastic. Use language a smart 12-year-old would find cool, not babyish.`
 
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));
-      const detail = err?.error?.message ?? err?.error?.status ?? response.status;
-      return res.status(502).json({ error: `Gemini error: ${detail}` });
+      console.error('Gemini API error:', err);
+      return res.status(502).json({ error: 'Could not fetch facts right now. Try again in a moment!' });
     }
 
     const data = await response.json();
