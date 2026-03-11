@@ -15,8 +15,16 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Please enter a whole number between 1 and 999.' });
   }
 
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
+  // Collect all configured API keys: GEMINI_API_KEY, GEMINI_API_KEY_2, GEMINI_API_KEY_3, ...
+  const apiKeys = [
+    process.env.GEMINI_API_KEY,
+    process.env.GEMINI_API_KEY_2,
+    process.env.GEMINI_API_KEY_3,
+    process.env.GEMINI_API_KEY_4,
+    process.env.GEMINI_API_KEY_5,
+  ].filter(Boolean);
+
+  if (apiKeys.length === 0) {
     return res.status(500).json({ error: 'Server configuration error. Please try again later.' });
   }
 
@@ -29,39 +37,51 @@ Use British English spelling.
 Do NOT use bullet points, numbers, or headers — just plain paragraphs separated by blank lines.
 Be enthusiastic. Use language a smart 12-year-old would find cool, not babyish.`;
 
-  try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.9 }
-        })
+  const body = JSON.stringify({
+    contents: [{ parts: [{ text: prompt }] }],
+    generationConfig: { temperature: 0.9 }
+  });
+
+  for (const apiKey of apiKeys) {
+    try {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body
+        }
+      );
+
+      // On quota/rate-limit errors, try the next key
+      if (response.status === 429) {
+        console.warn('Quota exceeded for a key, trying next...');
+        continue;
       }
-    );
 
-    if (!response.ok) {
-      const err = await response.json().catch(() => ({}));
-      const detail = err?.error?.message ?? err?.error?.status ?? response.status;
-      return res.status(502).json({ error: `Gemini error: ${detail}` });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        console.error('Gemini API error:', response.status, err);
+        continue;
+      }
+
+      const data = await response.json();
+      let text = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+
+      // Strip markdown: bold, italic, headers, bullet points
+      text = text
+        .replace(/\*\*(.+?)\*\*/g, '$1')
+        .replace(/\*(.+?)\*/g, '$1')
+        .replace(/^#{1,6}\s+/gm, '')
+        .replace(/^[-*•]\s+/gm, '')
+        .trim();
+
+      return res.status(200).json({ facts: text });
+    } catch (err) {
+      console.error('Unexpected error with a key:', err);
+      continue;
     }
-
-    const data = await response.json();
-    let text = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
-
-    // Strip markdown: bold, italic, headers, bullet points
-    text = text
-      .replace(/\*\*(.+?)\*\*/g, '$1')
-      .replace(/\*(.+?)\*/g, '$1')
-      .replace(/^#{1,6}\s+/gm, '')
-      .replace(/^[-*•]\s+/gm, '')
-      .trim();
-
-    return res.status(200).json({ facts: text });
-  } catch (err) {
-    console.error('Unexpected error:', err);
-    return res.status(500).json({ error: 'Something went wrong. Give it another go!' });
   }
+
+  return res.status(502).json({ error: 'Could not fetch facts right now. Try again in a moment!' });
 }
