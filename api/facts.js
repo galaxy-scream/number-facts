@@ -44,8 +44,8 @@ Be enthusiastic. Use language a smart 12-year-old would find cool, not babyish.`
 
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));
-      const detail = err?.error?.message ?? err?.error?.status ?? response.status;
-      return res.status(502).json({ error: `Gemini error: ${detail}` });
+      console.error('Gemini API error:', err);
+      return res.status(502).json({ error: 'Could not fetch facts right now. Try again in a moment!' });
     }
 
     const data = await response.json();
