@@ -15,16 +15,8 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Please enter a whole number between 1 and 999.' });
   }
 
-  // Collect all configured API keys: GEMINI_API_KEY, GEMINI_API_KEY_2, GEMINI_API_KEY_3, ...
-  const apiKeys = [
-    process.env.GEMINI_API_KEY,
-    process.env.GEMINI_API_KEY_2,
-    process.env.GEMINI_API_KEY_3,
-    process.env.GEMINI_API_KEY_4,
-    process.env.GEMINI_API_KEY_5,
-  ].filter(Boolean);
-
-  if (apiKeys.length === 0) {
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) {
     return res.status(500).json({ error: 'Server configuration error. Please try again later.' });
   }
 
@@ -37,47 +29,40 @@ Use British English spelling.
 Do NOT use bullet points, numbers, or headers — just plain paragraphs separated by blank lines.
 Be enthusiastic. Use language a smart 12-year-old would find cool, not babyish.`;
 
-  const body = JSON.stringify({
-    contents: [{ parts: [{ text: prompt }] }],
-    generationConfig: { temperature: 0.9 }
-  });
+  try {
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.9
+      })
+    });
 
-  const errors = [];
-
-  for (let i = 0; i < apiKeys.length; i++) {
-    try {
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${apiKeys[i]}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body
-        }
-      );
-
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({}));
-        const msg = err?.error?.message ?? err?.error?.status ?? response.status;
-        errors.push(`key${i + 1}: ${response.status} — ${msg}`);
-        continue;
-      }
-
-      const data = await response.json();
-      let text = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
-
-      text = text
-        .replace(/\*\*(.+?)\*\*/g, '$1')
-        .replace(/\*(.+?)\*/g, '$1')
-        .replace(/^#{1,6}\s+/gm, '')
-        .replace(/^[-*•]\s+/gm, '')
-        .trim();
-
-      return res.status(200).json({ facts: text });
-    } catch (err) {
-      errors.push(`key${i + 1}: fetch error — ${err.message}`);
-      continue;
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      console.error('Groq API error:', response.status, err);
+      return res.status(502).json({ error: 'Could not fetch facts right now. Try again in a moment!' });
     }
-  }
 
-  return res.status(502).json({ error: errors.join(' | ') });
+    const data = await response.json();
+    let text = data?.choices?.[0]?.message?.content ?? '';
+
+    // Strip markdown: bold, italic, headers, bullet points
+    text = text
+      .replace(/\*\*(.+?)\*\*/g, '$1')
+      .replace(/\*(.+?)\*/g, '$1')
+      .replace(/^#{1,6}\s+/gm, '')
+      .replace(/^[-*•]\s+/gm, '')
+      .trim();
+
+    return res.status(200).json({ facts: text });
+  } catch (err) {
+    console.error('Unexpected error:', err);
+    return res.status(500).json({ error: 'Something went wrong. Give it another go!' });
+  }
 }
