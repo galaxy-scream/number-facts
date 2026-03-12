@@ -42,10 +42,12 @@ Be enthusiastic. Use language a smart 12-year-old would find cool, not babyish.`
     generationConfig: { temperature: 0.9 }
   });
 
-  for (const apiKey of apiKeys) {
+  const errors = [];
+
+  for (let i = 0; i < apiKeys.length; i++) {
     try {
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${apiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${apiKeys[i]}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -53,22 +55,16 @@ Be enthusiastic. Use language a smart 12-year-old would find cool, not babyish.`
         }
       );
 
-      // On quota/rate-limit errors, try the next key
-      if (response.status === 429) {
-        console.warn('Quota exceeded for a key, trying next...');
-        continue;
-      }
-
       if (!response.ok) {
         const err = await response.json().catch(() => ({}));
-        console.error('Gemini API error:', response.status, err);
+        const msg = err?.error?.message ?? err?.error?.status ?? response.status;
+        errors.push(`key${i + 1}: ${response.status} — ${msg}`);
         continue;
       }
 
       const data = await response.json();
       let text = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
 
-      // Strip markdown: bold, italic, headers, bullet points
       text = text
         .replace(/\*\*(.+?)\*\*/g, '$1')
         .replace(/\*(.+?)\*/g, '$1')
@@ -78,10 +74,10 @@ Be enthusiastic. Use language a smart 12-year-old would find cool, not babyish.`
 
       return res.status(200).json({ facts: text });
     } catch (err) {
-      console.error('Unexpected error with a key:', err);
+      errors.push(`key${i + 1}: fetch error — ${err.message}`);
       continue;
     }
   }
 
-  return res.status(502).json({ error: 'Could not fetch facts right now. Try again in a moment!' });
+  return res.status(502).json({ error: errors.join(' | ') });
 }
