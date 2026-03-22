@@ -1,50 +1,70 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Number Facts</title>
-  <link rel="stylesheet" href="style.css" />
-</head>
-<body>
-  <main class="container">
-    <h1>Number Facts</h1>
-    <p class="subheading">Enter a number, discover something amazing.</p>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Number Facts</title>
+        <link rel="stylesheet" href="style.css" />
+    </head>
+    <body>
+        <main class="container">
+            <h1>Number Facts</h1>
+            <p class="subheading">
+                Enter a number, discover something amazing. Powered byGroq and
+                Claude AI models.
+            </p>
 
-    <form id="fact-form">
-      <input
-        id="number-input"
-        type="number"
-        min="1"
-        max="999"
-        step="1"
-        placeholder="42"
-        autocomplete="off"
-        aria-label="Enter a number between 1 and 999"
-      />
-      <button type="submit" id="go-btn">Go!</button>
-    </form>
+            <form id="fact-form">
+                <input
+                    id="number-input"
+                    type="number"
+                    min="1"
+                    max="999"
+                    step="1"
+                    placeholder="42"
+                    autocomplete="off"
+                    aria-label="Enter a number between 1 and 999"
+                />
+                <button type="submit" id="go-btn">Go!</button>
+            </form>
 
-    <section class="character-section" aria-label="Choose your character">
-      <p class="character-label">Choose your character:</p>
-      <div id="character-picker" class="character-picker" role="group" aria-label="Character selection"></div>
-    </section>
+            <section
+                class="character-section"
+                aria-label="Choose your character"
+            >
+                <p class="character-label">Choose your character:</p>
+                <div
+                    id="character-picker"
+                    class="character-picker"
+                    role="group"
+                    aria-label="Character selection"
+                ></div>
+            </section>
 
-    <div id="loading" class="loading" hidden>
-      <span class="spinner" aria-hidden="true"></span>
-      <span>Finding facts&hellip;</span>
-    </div>
+            <div id="loading" class="loading" hidden>
+                <span class="spinner" aria-hidden="true"></span>
+                <span>Finding facts&hellip;</span>
+            </div>
 
-    <div id="error-box" class="error-box" hidden role="alert"></div>
+            <div id="error-box" class="error-box" hidden role="alert"></div>
 
-    <section id="fact-display" class="fact-display" hidden aria-live="polite">
-      <div id="character-icon" class="character-icon" aria-hidden="true"></div>
-      <div class="speech-bubble">
-        <p id="fact-text"></p>
-      </div>
-    </section>
-  </main>
+            <section
+                id="fact-display"
+                class="fact-display"
+                hidden
+                aria-live="polite"
+            >
+                <div
+                    id="character-icon"
+                    class="character-icon"
+                    aria-hidden="true"
+                ></div>
+                <div class="speech-bubble">
+                    <p id="fact-text"></p>
+                </div>
+            </section>
+        </main>
 
-  <script src="app.js"></script>
-</body>
+        <script src="app.js"></script>
+    </body>
 </html>
